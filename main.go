@@ -10,11 +10,17 @@ import (
 	//"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/manumura/golang-app-device/channel"
 )
 
 func main() {
 	r := httprouter.New()
+
+	// Get a ChannelController instance
+	channelController := channel.NewChannelController()
+
 	r.GET("/", index)
+	r.GET("/dm/api/v1/channels", channelController.GetChannels)
 	http.ListenAndServe(":17172", r)
 }
 
