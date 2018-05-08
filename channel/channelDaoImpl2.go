@@ -6,14 +6,14 @@ import (
 	"github.com/manumura/golang-app-device/config"
 )
 
-// ChannelDaoImpl : implementation for DB operations on channel
-type ChannelDaoImpl struct {
+// ChannelDaoImpl2 : test / implementation for DB operations on channel
+type ChannelDaoImpl2 struct {
 }
 
-// FindChannels : retrieve channels from the database
-func (cd ChannelDaoImpl) FindChannels() ([]Channel, error) {
+// FindChannels : test / retrieve channels from the database
+func (cd ChannelDaoImpl2) FindChannels() ([]Channel, error) {
 
-	fmt.Println("ChannelDaoImpl")
+	fmt.Println("ChannelDaoImpl2")
 
 	rows, err := config.Database.Query("SELECT c.dist_channel_id, c.name, c.description FROM app_dist_channel c")
 	if err != nil {
