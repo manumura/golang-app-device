@@ -1,8 +1,9 @@
-package channel
+package dao
 
 import (
 	"fmt"
 
+	"github.com/manumura/golang-app-device/channel/model"
 	"github.com/manumura/golang-app-device/config"
 )
 
@@ -11,7 +12,7 @@ type ChannelDaoImpl2 struct {
 }
 
 // FindChannels : test / retrieve channels from the database
-func (cd ChannelDaoImpl2) FindChannels() ([]Channel, error) {
+func (cd ChannelDaoImpl2) FindChannels() ([]model.Channel, error) {
 
 	fmt.Println("ChannelDaoImpl2")
 
@@ -21,9 +22,9 @@ func (cd ChannelDaoImpl2) FindChannels() ([]Channel, error) {
 	}
 	defer rows.Close()
 
-	channels := []Channel{}
+	channels := []model.Channel{}
 	for rows.Next() {
-		channel := Channel{}
+		channel := model.Channel{}
 		err := rows.Scan(&channel.ID, &channel.Name, &channel.Description) // order matters
 		if err != nil {
 			return nil, err

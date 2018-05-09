@@ -11,6 +11,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/manumura/golang-app-device/channel"
+	"github.com/manumura/golang-app-device/device-type"
 )
 
 func main() {
@@ -19,8 +20,14 @@ func main() {
 	// Get a ChannelController instance
 	channelController := channel.NewChannelController()
 
+	// Get a DeviceTypeController instance
+	deviceTypeController := deviceType.NewDeviceTypeController()
+
 	r.GET("/", index)
-	r.GET("/dm/api/v1/channels", channelController.GetChannels)
+	r.GET("/dm/api/v1/channels", channelController.FindChannels)
+	r.GET("/dm/api/v1/channels/:id", channelController.GetChannel)
+	r.GET("/dm/api/v1/deviceTypes", deviceTypeController.FindDeviceTypes)
+	r.GET("/dm/api/v1/deviceTypes/:id", deviceTypeController.GetDeviceType)
 	http.ListenAndServe(":17172", r)
 }
 
