@@ -13,8 +13,3 @@ type DeviceService interface {
 	Create(devicemodel.Device) (devicemodel.Device, error)
 	FindDeviceStatuses() ([]devicemodel.DeviceStatus, error)
 }
-
-// NewDeviceService : Create a new instance of DeviceService implemenation
-func NewDeviceService() DeviceService {
-	return DeviceServiceImpl{}
-}

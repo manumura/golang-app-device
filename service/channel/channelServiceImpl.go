@@ -7,20 +7,24 @@ import (
 
 // ChannelServiceImpl : implementation for services on channel
 type ChannelServiceImpl struct {
+	channelDao channeldao.ChannelDao
+}
+
+// NewChannelService : Create a new instance of ChannelService implemenation
+func NewChannelService(channelDao channeldao.ChannelDao) ChannelService {
+	return ChannelServiceImpl{channelDao}
 }
 
 // FindChannels : retrieve channels
 func (cs ChannelServiceImpl) FindChannels() ([]channelmodel.Channel, error) {
 
-	channelDao := channeldao.NewChannelDao()
-	channels, err := channelDao.FindChannels()
+	channels, err := cs.channelDao.FindChannels()
 	return channels, err
 }
 
 // GetChannel : retrieve channel by id
 func (cs ChannelServiceImpl) GetChannel(id int) (channelmodel.Channel, error) {
 
-	channelDao := channeldao.NewChannelDao()
-	channel, err := channelDao.GetChannel(id)
+	channel, err := cs.channelDao.GetChannel(id)
 	return channel, err
 }

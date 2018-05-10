@@ -7,52 +7,52 @@ import (
 
 // DeviceServiceImpl : implementation for services on device
 type DeviceServiceImpl struct {
+	deviceDao devicedao.DeviceDao
+}
+
+// NewDeviceService : Create a new instance of DeviceService implemenation
+func NewDeviceService(deviceDao devicedao.DeviceDao) DeviceService {
+	return DeviceServiceImpl{deviceDao}
 }
 
 // FindDevices : retrieve devices
 func (ds DeviceServiceImpl) FindDevices() ([]devicemodel.Device, error) {
 
-	deviceDao := devicedao.NewDeviceDao()
-	devices, err := deviceDao.FindDevices()
+	devices, err := ds.deviceDao.FindDevices()
 	return devices, err
 }
 
 // GetDevice : retrieve device by id
 func (ds DeviceServiceImpl) GetDevice(id int) (devicemodel.Device, error) {
 
-	deviceDao := devicedao.NewDeviceDao()
-	device, err := deviceDao.GetDevice(id)
+	device, err := ds.deviceDao.GetDevice(id)
 	return device, err
 }
 
 // Delete : retrieve one device
 func (ds DeviceServiceImpl) Delete(id int) error {
 
-	deviceDao := devicedao.NewDeviceDao()
-	err := deviceDao.Delete(id)
+	err := ds.deviceDao.Delete(id)
 	return err
 }
 
 // Update : update one device
 func (ds DeviceServiceImpl) Update(device devicemodel.Device) (devicemodel.Device, error) {
 
-	deviceDao := devicedao.NewDeviceDao()
-	device, err := deviceDao.Update(device)
+	device, err := ds.deviceDao.Update(device)
 	return device, err
 }
 
 // Create : create one device
 func (ds DeviceServiceImpl) Create(device devicemodel.Device) (devicemodel.Device, error) {
 
-	deviceDao := devicedao.NewDeviceDao()
-	device, err := deviceDao.Create(device)
+	device, err := ds.deviceDao.Create(device)
 	return device, err
 }
 
 // FindDeviceStatuses : retrieve device statuses
 func (ds DeviceServiceImpl) FindDeviceStatuses() ([]devicemodel.DeviceStatus, error) {
 
-	deviceDao := devicedao.NewDeviceDao()
-	deviceStatuses, err := deviceDao.FindDeviceStatuses()
+	deviceStatuses, err := ds.deviceDao.FindDeviceStatuses()
 	return deviceStatuses, err
 }

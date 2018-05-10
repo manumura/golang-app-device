@@ -8,6 +8,9 @@ import (
 	"github.com/manumura/golang-app-device/controller/channel"
 	"github.com/manumura/golang-app-device/controller/device"
 	"github.com/manumura/golang-app-device/controller/device-type"
+	"github.com/manumura/golang-app-device/dao/channel"
+	"github.com/manumura/golang-app-device/dao/device"
+	"github.com/manumura/golang-app-device/dao/device-type"
 	"github.com/manumura/golang-app-device/service/channel"
 	"github.com/manumura/golang-app-device/service/device"
 	"github.com/manumura/golang-app-device/service/device-type"
@@ -22,19 +25,22 @@ func main() {
 	r.GET("/", index)
 
 	// Get a ChannelController instance
-	channelService := channelservice.NewChannelService()
+	channelDao := channeldao.NewChannelDao()
+	channelService := channelservice.NewChannelService(channelDao)
 	channelController := channel.NewChannelController(channelService)
 	r.GET("/dm/api/v1/channels", channelController.FindChannels)
 	r.GET("/dm/api/v1/channels/:id", channelController.GetChannel)
 
 	// Get a DeviceTypeController instance
-	deviceTypeService := devicetypeservice.NewDeviceTypeService()
+	deviceTypeDao := devicetypedao.NewDeviceTypeDao()
+	deviceTypeService := devicetypeservice.NewDeviceTypeService(deviceTypeDao)
 	deviceTypeController := devicetypecontroller.NewDeviceTypeController(deviceTypeService)
 	r.GET("/dm/api/v1/deviceTypes", deviceTypeController.FindDeviceTypes)
 	r.GET("/dm/api/v1/deviceTypes/:id", deviceTypeController.GetDeviceType)
 
 	// Get a DeviceController instance
-	deviceService := deviceservice.NewDeviceService()
+	deviceDao := devicedao.NewDeviceDao()
+	deviceService := deviceservice.NewDeviceService(deviceDao)
 	deviceController := device.NewDeviceController(deviceService)
 	r.GET("/dm/api/v1/devices", deviceController.FindDevices)
 	r.GET("/dm/api/v1/devices/:id", deviceController.GetDevice)
