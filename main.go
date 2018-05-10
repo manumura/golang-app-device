@@ -1,33 +1,45 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
+
+	"github.com/julienschmidt/httprouter"
+	"github.com/manumura/golang-app-device/controller/channel"
+	"github.com/manumura/golang-app-device/controller/device"
+	"github.com/manumura/golang-app-device/controller/device-type"
+	"github.com/manumura/golang-app-device/service/channel"
+	"github.com/manumura/golang-app-device/service/device"
+	"github.com/manumura/golang-app-device/service/device-type"
 )
 
 // Application starts here.
-import (
-	"fmt"
-	//"net/http"
 
-	"github.com/julienschmidt/httprouter"
-	"github.com/manumura/golang-app-device/channel"
-	"github.com/manumura/golang-app-device/device-type"
-)
+//"net/http"
 
 func main() {
 	r := httprouter.New()
+	r.GET("/", index)
 
 	// Get a ChannelController instance
-	channelController := channel.NewChannelController()
-
-	// Get a DeviceTypeController instance
-	deviceTypeController := deviceType.NewDeviceTypeController()
-
-	r.GET("/", index)
+	channelService := channelservice.NewChannelService()
+	channelController := channel.NewChannelController(channelService)
 	r.GET("/dm/api/v1/channels", channelController.FindChannels)
 	r.GET("/dm/api/v1/channels/:id", channelController.GetChannel)
+
+	// Get a DeviceTypeController instance
+	deviceTypeService := devicetypeservice.NewDeviceTypeService()
+	deviceTypeController := devicetypecontroller.NewDeviceTypeController(deviceTypeService)
 	r.GET("/dm/api/v1/deviceTypes", deviceTypeController.FindDeviceTypes)
 	r.GET("/dm/api/v1/deviceTypes/:id", deviceTypeController.GetDeviceType)
+
+	// Get a DeviceController instance
+	deviceService := deviceservice.NewDeviceService()
+	deviceController := device.NewDeviceController(deviceService)
+	r.GET("/dm/api/v1/devices", deviceController.FindDevices)
+	r.GET("/dm/api/v1/devices/:id", deviceController.GetDevice)
+	r.GET("/dm/api/v1/status/devices", deviceController.FindDeviceStatuses)
+
 	http.ListenAndServe(":17172", r)
 }
 
