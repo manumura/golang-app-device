@@ -1,0 +1,13 @@
+{
+    "host": {
+        "url": "localhost",
+        "port": 17172
+    },
+    "database": {
+        "url": "localhost",
+        "port": 5433,
+        "name": "app_device_management",
+        "user": "postgres",
+        "password": "postgres"
+    }
+}

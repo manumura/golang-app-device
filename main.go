@@ -17,9 +17,6 @@ import (
 )
 
 // Application starts here.
-
-//"net/http"
-
 func main() {
 	r := httprouter.New()
 	r.GET("/", index)
