@@ -28,11 +28,13 @@ func (cd ChannelDaoImpl) FindChannels() ([]channelmodel.Channel, error) {
 		channel := channelmodel.Channel{}
 		err := rows.Scan(&channel.ID, &channel.Name, &channel.Description) // order matters
 		if err != nil {
+			log.Println(err)
 			return nil, err
 		}
 		channels = append(channels, channel)
 	}
 	if err = rows.Err(); err != nil {
+		log.Println(err)
 		return nil, err
 	}
 
@@ -54,6 +56,7 @@ func (cd ChannelDaoImpl) GetChannel(id int) (channelmodel.Channel, error) {
 
 	err := row.Scan(&channel.ID, &channel.Name, &channel.Description)
 	if err != nil {
+		log.Println(err)
 		return channel, err
 	}
 

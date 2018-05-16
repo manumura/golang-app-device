@@ -16,7 +16,7 @@ type DeviceDaoImpl struct {
 // FindDevices : retrieve devices from the database
 func (dd DeviceDaoImpl) FindDevices() ([]devicemodel.Device, error) {
 
-	sql := "SELECT dr.device_request_id, di.imei, dr.request_by, ds.name, dr.created_date_time "
+	sql := "SELECT dr.device_request_id, di.imei, dr.request_by, ds.device_status_id, ds.name, dr.created_date_time "
 	sql += "FROM device_request dr "
 	sql += "LEFT JOIN device_status ds ON ds.device_status_id = dr. device_status_id "
 	sql += "LEFT JOIN device_info di ON di.device_info_id = dr.device_info_id "
@@ -31,13 +31,15 @@ func (dd DeviceDaoImpl) FindDevices() ([]devicemodel.Device, error) {
 	devices := []devicemodel.Device{}
 	for rows.Next() {
 		device := devicemodel.Device{}
-		err := rows.Scan(&device.ID, &device.Imei, &device.RequestBy, &device.Status, &device.Timestamp) // order matters
+		err := rows.Scan(&device.ID, &device.Imei, &device.RequestBy, &device.Status, &device.StatusText, &device.Timestamp) // order matters
 		if err != nil {
+			log.Println(err)
 			return nil, err
 		}
 		devices = append(devices, device)
 	}
 	if err = rows.Err(); err != nil {
+		log.Println(err)
 		return nil, err
 	}
 
@@ -54,7 +56,10 @@ func (dd DeviceDaoImpl) GetDevice(id int) (devicemodel.Device, error) {
 		return device, errors.New("id cannot be empty")
 	}
 
-	sql := "SELECT dr.device_request_id, di.imei, dr.request_by, ds.name, dr.created_date_time "
+	sql := "SELECT dr.device_request_id, di.imei, dr.request_by, ds.device_status_id, ds.name, dr.created_date_time, "
+	sql += "di.android_device_id, di.android_version, di.api_level, di.brand, di.build_number, "
+	sql += "di.cpu_hardware, di.display_density, di.display_physical_size, di.display_resolution, "
+	sql += "di.hardware_serial_no, di.instruction_sets, di.manufacturer, di.model "
 	sql += "FROM device_request dr "
 	sql += "LEFT JOIN device_status ds ON ds.device_status_id = dr. device_status_id "
 	sql += "LEFT JOIN device_info di ON di.device_info_id = dr.device_info_id "
@@ -63,8 +68,11 @@ func (dd DeviceDaoImpl) GetDevice(id int) (devicemodel.Device, error) {
 
 	row := config.Database.QueryRow(sql, id)
 
-	err := row.Scan(&device.ID, &device.Imei, &device.RequestBy, &device.Status, &device.Timestamp)
+	err := row.Scan(&device.ID, &device.Imei, &device.RequestBy, &device.Status, &device.StatusText, &device.Timestamp, &device.DeviceInfo.AndroidDeviceID, &device.DeviceInfo.AndroidVersion,
+		&device.DeviceInfo.APILevel, &device.DeviceInfo.Brand, &device.DeviceInfo.BuildNumber, &device.DeviceInfo.CPUHardware, &device.DeviceInfo.DisplayDensity, &device.DeviceInfo.DisplayPhysicalSize,
+		&device.DeviceInfo.DisplayResolution, &device.DeviceInfo.HardwareSerialNo, &device.DeviceInfo.InstructionSets, &device.DeviceInfo.Manufacturer, &device.DeviceInfo.Model)
 	if err != nil {
+		log.Println(err)
 		return device, err
 	}
 
@@ -81,24 +89,28 @@ func (dd DeviceDaoImpl) Delete(id int) error {
 
 	tx, err := config.Database.Begin()
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 
 	// execute delete on device table.
 	stmt, err := tx.Prepare("DELETE FROM device_request WHERE device_request_id = $1;")
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 
 	defer stmt.Close()
 
 	if _, err := stmt.Exec(id); err != nil {
+		log.Println(err)
 		tx.Rollback()
 		return errors.New("500. Internal Server Error. Unable to delete the book")
 	}
 
 	tx.Commit()
 	if err != nil {
+		log.Println(err)
 		return errors.New("500. Internal Server Error. Unable to delete the book")
 	}
 
@@ -116,6 +128,7 @@ func (dd DeviceDaoImpl) Update(d devicemodel.Device) (devicemodel.Device, error)
 
 	tx, err := config.Database.Begin()
 	if err != nil {
+		log.Println(err)
 		return result, err
 	}
 
@@ -125,6 +138,7 @@ func (dd DeviceDaoImpl) Update(d devicemodel.Device) (devicemodel.Device, error)
 
 	err = row.Scan(&statusID)
 	if err != nil {
+		log.Println(err)
 		return result, err
 	}
 
@@ -134,12 +148,14 @@ func (dd DeviceDaoImpl) Update(d devicemodel.Device) (devicemodel.Device, error)
 	stmt, err := tx.Prepare("UPDATE device_request SET request_by = $1, device_status_id = $2 WHERE device_request_id = $3")
 
 	if err != nil {
+		log.Println(err)
 		return result, err
 	}
 
 	defer stmt.Close()
 
 	if _, err := stmt.Exec(d.RequestBy, statusID, d.ID); err != nil {
+		log.Println(err)
 		tx.Rollback()
 		return result, err
 	}
@@ -147,6 +163,7 @@ func (dd DeviceDaoImpl) Update(d devicemodel.Device) (devicemodel.Device, error)
 	// commit transaction
 	err = tx.Commit()
 	if err != nil {
+		log.Println(err)
 		return result, err
 	}
 
@@ -166,6 +183,7 @@ func (dd DeviceDaoImpl) Create(d devicemodel.Device) (devicemodel.Device, error)
 
 	tx, err := config.Database.Begin()
 	if err != nil {
+		log.Println(err)
 		return result, err
 	}
 
@@ -175,6 +193,7 @@ func (dd DeviceDaoImpl) Create(d devicemodel.Device) (devicemodel.Device, error)
 
 	err = row.Scan(&statusID)
 	if err != nil {
+		log.Println(err)
 		return result, err
 	}
 
@@ -183,12 +202,14 @@ func (dd DeviceDaoImpl) Create(d devicemodel.Device) (devicemodel.Device, error)
 	// execute insert on device table
 	stmt, err := tx.Prepare("INSERT INTO device_request (created_date_time, device_status_id, is_active, request_by) VALUES ($1, $2, $3, $4)")
 	if err != nil {
+		log.Println(err)
 		return result, err
 	}
 
 	defer stmt.Close()
 
 	if _, err := stmt.Exec(time.Now, statusID, true, d.RequestBy); err != nil {
+		log.Println(err)
 		tx.Rollback()
 		return result, err
 	}
@@ -196,6 +217,7 @@ func (dd DeviceDaoImpl) Create(d devicemodel.Device) (devicemodel.Device, error)
 	// commit transaction
 	err = tx.Commit()
 	if err != nil {
+		log.Println(err)
 		return result, errors.New("device cannot be saved")
 	}
 
@@ -217,11 +239,13 @@ func (dd DeviceDaoImpl) FindDeviceStatuses() ([]devicemodel.DeviceStatus, error)
 		deviceStatus := devicemodel.DeviceStatus{}
 		err := rows.Scan(&deviceStatus.ID, &deviceStatus.Name) // order matters
 		if err != nil {
+			log.Println(err)
 			return nil, err
 		}
 		deviceStatuses = append(deviceStatuses, deviceStatus)
 	}
 	if err = rows.Err(); err != nil {
+		log.Println(err)
 		return nil, err
 	}
 

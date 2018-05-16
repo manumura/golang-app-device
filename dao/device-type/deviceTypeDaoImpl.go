@@ -26,11 +26,13 @@ func (cd DeviceTypeDaoImpl) FindDeviceTypes() ([]devicetypemodel.DeviceType, err
 		deviceType := devicetypemodel.DeviceType{}
 		err := rows.Scan(&deviceType.ID, &deviceType.Name, &deviceType.Description) // order matters
 		if err != nil {
+			log.Println(err)
 			return nil, err
 		}
 		deviceTypes = append(deviceTypes, deviceType)
 	}
 	if err = rows.Err(); err != nil {
+		log.Println(err)
 		return nil, err
 	}
 
@@ -51,6 +53,7 @@ func (cd DeviceTypeDaoImpl) GetDeviceType(id int) (devicetypemodel.DeviceType, e
 
 	err := row.Scan(&deviceType.ID, &deviceType.Name, &deviceType.Description)
 	if err != nil {
+		log.Println(err)
 		return deviceType, err
 	}
 

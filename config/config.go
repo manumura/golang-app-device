@@ -15,14 +15,16 @@ type SystemConfig struct {
 // DatabaseConfig : Database configuration model
 type DatabaseConfig struct {
 	URL      string
-	port     string
-	name     string
-	user     string
-	password string
+	Port     string
+	Name     string
+	User     string
+	Password string
+	Options  []string `mapstructure:"options"`
 }
 
 // InitDatabaseConfiguration : Initialize the database configuration
 func InitDatabaseConfiguration() *DatabaseConfig {
+
 	viper.SetConfigName("config") // name of config file (without extension)
 	// viper.AddConfigPath("/etc/appname/")  // path to look for the config file in
 	viper.AddConfigPath(".")    // optionally look for config in the working directory
@@ -31,13 +33,11 @@ func InitDatabaseConfiguration() *DatabaseConfig {
 		panic(fmt.Errorf("Fatal error config file: %s", err))
 	}
 
-	configuration := &DatabaseConfig{
-		viper.GetString("database.url"),
-		viper.GetString("database.port"),
-		viper.GetString("database.name"),
-		viper.GetString("database.user"),
-		viper.GetString("database.password"),
+	var config DatabaseConfig
+	err = viper.UnmarshalKey("database", &config)
+	if err != nil {
+		panic("Unable to unmarshal configuration")
 	}
 
-	return configuration
+	return &config
 }

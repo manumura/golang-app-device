@@ -7,7 +7,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// TODO : DI
 // Database : The pointer to the sql.DB
 var Database *sql.DB
 
@@ -16,16 +15,28 @@ func init() {
 	config := InitDatabaseConfiguration()
 
 	connectionString := "postgres://"
-	connectionString += config.user
+	connectionString += config.User
 	connectionString += ":"
-	connectionString += config.password
+	connectionString += config.Password
 	connectionString += "@"
 	connectionString += config.URL
 	connectionString += ":"
-	connectionString += config.port
+	connectionString += config.Port
 	connectionString += "/"
-	connectionString += config.name
-	connectionString += "?sslmode=disable"
+	connectionString += config.Name
+
+	// options
+	if len(config.Options) > 0 {
+		connectionString += "?"
+		for i, option := range config.Options {
+			connectionString += option
+			if i < len(config.Options)-1 {
+				connectionString += "&"
+			}
+		}
+	}
+	// connectionString += "?sslmode=disable"
+
 	log.Println(connectionString)
 
 	var err error

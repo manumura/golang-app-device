@@ -8,6 +8,9 @@
         "port": 5433,
         "name": "app_device_management",
         "user": "postgres",
-        "password": "postgres"
+        "password": "postgres",
+        "options": [
+            "sslmode=disable"
+        ]
     }
 }
