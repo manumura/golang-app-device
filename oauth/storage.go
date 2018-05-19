@@ -21,10 +21,11 @@ func NewInMemoryStorage() *InMemoryStorage {
 		refresh:   make(map[string]string),
 	}
 
-	r.clients["mtclientid"] = &osin.DefaultClient{
-		Id:          "mtclientid",
-		Secret:      "mt2018",
-		RedirectUri: "http://localhost:8091/", // TODO
+	// TODO
+	r.clients["appdevicemgmtclientid"] = &osin.DefaultClient{
+		Id:          "appdevicemgmtclientid",
+		Secret:      "appdevicemgmt2018",
+		RedirectUri: "http://localhost:8091/",
 	}
 
 	return r

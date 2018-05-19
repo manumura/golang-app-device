@@ -122,7 +122,8 @@ func (dd DeviceDaoImpl) Update(d devicemodel.Device) (devicemodel.Device, error)
 
 	result := devicemodel.Device{}
 
-	if d.ID == 0 || d.RequestBy == "" || d.Status == "" {
+	// if d.ID == 0 || d.Timestamp.String() == "" || d.Status == "" {
+	if d.ID == 0 || d.Status == 0 {
 		return result, errors.New("parameters cannot be empty")
 	}
 
@@ -132,20 +133,8 @@ func (dd DeviceDaoImpl) Update(d devicemodel.Device) (devicemodel.Device, error)
 		return result, err
 	}
 
-	// get status id from name
-	var statusID int
-	row := config.Database.QueryRow("SELECT ds.device_status_id FROM device_status ds WHERE ds.name = $1", d.Status)
-
-	err = row.Scan(&statusID)
-	if err != nil {
-		log.Println(err)
-		return result, err
-	}
-
-	log.Println(statusID)
-
 	// execute update on device table
-	stmt, err := tx.Prepare("UPDATE device_request SET request_by = $1, device_status_id = $2 WHERE device_request_id = $3")
+	stmt, err := tx.Prepare("UPDATE device_request SET device_status_id = $1 WHERE device_request_id = $2")
 
 	if err != nil {
 		log.Println(err)
@@ -154,7 +143,7 @@ func (dd DeviceDaoImpl) Update(d devicemodel.Device) (devicemodel.Device, error)
 
 	defer stmt.Close()
 
-	if _, err := stmt.Exec(d.RequestBy, statusID, d.ID); err != nil {
+	if _, err := stmt.Exec(d.Status, d.ID); err != nil {
 		log.Println(err)
 		tx.Rollback()
 		return result, err
@@ -177,7 +166,7 @@ func (dd DeviceDaoImpl) Create(d devicemodel.Device) (devicemodel.Device, error)
 
 	result := devicemodel.Device{}
 
-	if d.ID == 0 || d.RequestBy == "" || d.Status == "" {
+	if d.RequestBy == "" || d.Status == 0 {
 		return result, errors.New("parameters cannot be empty")
 	}
 
@@ -186,18 +175,6 @@ func (dd DeviceDaoImpl) Create(d devicemodel.Device) (devicemodel.Device, error)
 		log.Println(err)
 		return result, err
 	}
-
-	// get status id from name
-	var statusID int
-	row := config.Database.QueryRow("SELECT ds.device_status_id FROM device_status ds WHERE ds.name = $1", d.Status)
-
-	err = row.Scan(&statusID)
-	if err != nil {
-		log.Println(err)
-		return result, err
-	}
-
-	log.Println(statusID)
 
 	// execute insert on device table
 	stmt, err := tx.Prepare("INSERT INTO device_request (created_date_time, device_status_id, is_active, request_by) VALUES ($1, $2, $3, $4)")
@@ -208,7 +185,7 @@ func (dd DeviceDaoImpl) Create(d devicemodel.Device) (devicemodel.Device, error)
 
 	defer stmt.Close()
 
-	if _, err := stmt.Exec(time.Now, statusID, true, d.RequestBy); err != nil {
+	if _, err := stmt.Exec(time.Now, d.Status, true, d.RequestBy); err != nil {
 		log.Println(err)
 		tx.Rollback()
 		return result, err

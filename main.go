@@ -53,6 +53,8 @@ func main() {
 	e.GET("/dm/api/v1/devices", deviceController.FindDevices)
 	e.GET("/dm/api/v1/devices/:id", deviceController.GetDevice)
 	e.GET("/dm/api/v1/devices/statuses", deviceController.FindDeviceStatuses)
+	e.PUT("/dm/api/v1/devices", deviceController.UpdateDevice)
+	e.DELETE("/dm/api/v1/devices/:id", deviceController.DeleteDevice)
 
 	// TODO : oauth + protect endpoints
 	// Access token endpoint
@@ -110,7 +112,7 @@ func login(c echo.Context) error {
 		case osin.REFRESH_TOKEN:
 			ar.Authorized = true
 		case osin.PASSWORD:
-			// TODO : check for DB
+			// TODO : check for DB + bcrypt
 			if ar.Username == "admin" && ar.Password == "thepass" {
 				ar.Authorized = true
 			}
