@@ -13,7 +13,7 @@ type DeviceTypeDaoImpl struct {
 }
 
 // FindDeviceTypes : retrieve device types from the database
-func (cd DeviceTypeDaoImpl) FindDeviceTypes() ([]devicetypemodel.DeviceType, error) {
+func (dtd DeviceTypeDaoImpl) FindDeviceTypes() ([]devicetypemodel.DeviceType, error) {
 
 	rows, err := config.Database.Query("SELECT dt.device_type_id, dt.name, dt.description FROM device_type dt")
 	if err != nil {
@@ -41,7 +41,7 @@ func (cd DeviceTypeDaoImpl) FindDeviceTypes() ([]devicetypemodel.DeviceType, err
 }
 
 // GetDeviceType : retrieve device type by id from the database
-func (cd DeviceTypeDaoImpl) GetDeviceType(id int) (devicetypemodel.DeviceType, error) {
+func (dtd DeviceTypeDaoImpl) GetDeviceType(id int) (devicetypemodel.DeviceType, error) {
 
 	deviceType := devicetypemodel.DeviceType{}
 

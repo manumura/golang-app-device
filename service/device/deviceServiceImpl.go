@@ -29,7 +29,7 @@ func (ds DeviceServiceImpl) GetDevice(id int) (devicemodel.Device, error) {
 	return device, err
 }
 
-// Delete : retrieve one device
+// Delete : delete one device
 func (ds DeviceServiceImpl) Delete(id int) error {
 
 	err := ds.deviceDao.Delete(id)
@@ -39,15 +39,15 @@ func (ds DeviceServiceImpl) Delete(id int) error {
 // Update : update one device
 func (ds DeviceServiceImpl) Update(device devicemodel.Device) (devicemodel.Device, error) {
 
-	device, err := ds.deviceDao.Update(device)
-	return device, err
+	deviceUpdated, err := ds.deviceDao.Update(device)
+	return deviceUpdated, err
 }
 
 // Create : create one device
 func (ds DeviceServiceImpl) Create(device devicemodel.Device) (devicemodel.Device, error) {
 
-	device, err := ds.deviceDao.Create(device)
-	return device, err
+	deviceCreated, err := ds.deviceDao.Create(device)
+	return deviceCreated, err
 }
 
 // FindDeviceStatuses : retrieve device statuses

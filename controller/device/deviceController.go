@@ -47,6 +47,7 @@ func (dc DeviceController) GetDevice(c echo.Context) error {
 	}
 
 	device, err := dc.deviceService.GetDevice(id)
+	// TODO : throw more appropriate error
 	switch {
 	case err == sql.ErrNoRows:
 		return echo.NewHTTPError(http.StatusNotFound, "Page not found")

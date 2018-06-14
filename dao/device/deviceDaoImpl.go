@@ -185,7 +185,7 @@ func (dd DeviceDaoImpl) Create(d devicemodel.Device) (devicemodel.Device, error)
 
 	defer stmt.Close()
 
-	if _, err := stmt.Exec(time.Now, d.Status, true, d.RequestBy); err != nil {
+	if _, err := stmt.Exec(time.Now(), d.Status, true, d.RequestBy); err != nil {
 		log.Println(err)
 		tx.Rollback()
 		return result, err
