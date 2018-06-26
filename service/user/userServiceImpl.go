@@ -16,7 +16,7 @@ func NewUserService(userdao userdao.UserDao) UserService {
 }
 
 // GetUser : retrieve user by id
-func (us UserServiceImpl) GetUser(id int64) (usermodel.User, error) {
+func (us UserServiceImpl) GetUser(id int) (usermodel.User, error) {
 
 	user, err := us.userDao.GetUser(id)
 	return user, err

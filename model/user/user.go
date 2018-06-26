@@ -2,7 +2,7 @@ package usermodel
 
 // User type
 type User struct {
-	ID        int64  `json:"id"`
+	ID        int    `json:"id"`
 	Username  string `json:"username"`
 	Password  string `json:"password"`
 	LastName  string `json:"lastName"`
@@ -12,6 +12,6 @@ type User struct {
 
 // Role type
 type Role struct {
-	ID   int64  `json:"id"`
+	ID   int    `json:"id"`
 	Name string `json:"name"`
 }

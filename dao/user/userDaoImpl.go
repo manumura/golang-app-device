@@ -17,7 +17,7 @@ type UserDaoImpl struct {
 }
 
 // GetUser : retrieve user by id from the database
-func (ud UserDaoImpl) GetUser(id int64) (usermodel.User, error) {
+func (ud UserDaoImpl) GetUser(id int) (usermodel.User, error) {
 
 	// user := usermodel.User{}
 
@@ -40,7 +40,7 @@ func (ud UserDaoImpl) GetUser(id int64) (usermodel.User, error) {
 	}
 	defer rows.Close()
 
-	var userID, roleID int64
+	var userID, roleID int
 	var userName, userLastName, userFirstName, roleName string
 	var roles []usermodel.Role
 	for rows.Next() {
@@ -146,7 +146,7 @@ func (ud UserDaoImpl) Create(u usermodel.User) (usermodel.User, error) {
 	}
 	defer stmt.Close()
 
-	var userid int64
+	var userid int
 	if err = stmt.QueryRow(u.Username, hashedPassword, time.Now(), true, u.FirstName, u.LastName).Scan(&userid); err != nil {
 		tx.Rollback()
 		log.Println(err)

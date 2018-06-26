@@ -24,6 +24,9 @@ func NewDeviceController(deviceService deviceservice.DeviceService) *DeviceContr
 // FindDevices : Get all devices as json
 func (dc DeviceController) FindDevices(c echo.Context) error {
 
+	log.Println(c.Cookie("SESSIONID"))
+	log.Println(c.Cookies())
+
 	devices, err := dc.deviceService.FindDevices()
 	if err != nil {
 		log.Println(err)
