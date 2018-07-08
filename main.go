@@ -45,6 +45,14 @@ func main() {
 
 	apiV1Group := e.Group("/api/v1")
 
+	// Recover middleware
+	e.Use(middleware.Recover())
+
+	// Logs middleware : this logs the server interaction
+	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
+		Format: `[${time_rfc3339}]  ${status}  ${method} ${host}${path} ${latency_human}` + "\n",
+	}))
+
 	// CORS middleware
 	corsConfig := middleware.CORSConfig{
 		AllowOrigins:     	[]string{"http://localhost:8091"},
@@ -74,25 +82,32 @@ func main() {
 	}
 	apiV1Group.Use(middleware.CSRFWithConfig(csrfConfig))
 
-	// TODO session cookie JWT middleware => protect endpoints
-	// sess := sessions.NewCookieStore([]byte("secret"))
-	// sess.Options = &sessions.Options{
-	// 	Path:     "/",
-	// 	MaxAge:   86400 * 7,
-	// 	HttpOnly: true,
-	// }
-	// e.Use(session.Middleware(sess))
+	// TODO : constants
+	// JWT middleware
+	jwtConfig := middleware.JWTConfig{
+		SigningKey: []byte("mySecret"),
+		SigningMethod: "HS512",
+		TokenLookup: "cookie:SESSIONID",
+	}
+	apiV1Group.Use(middleware.JWTWithConfig(jwtConfig))
 
-	// Logs middleware : this logs the server interaction
-	apiV1Group.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
-		Format: `[${time_rfc3339}]  ${status}  ${method} ${host}${path} ${latency_human}` + "\n",
-	}))
+	// Index
+	apiV1Group.GET("/", index)
 
 	// Login endpoint
 	e.POST("/api/v1/login", login)
 
-	// Index
-	apiV1Group.GET("/", index)
+	// Logout endpoint : delete cookies session + csrf
+	e.POST("/api/v1/logout", logout)
+
+	// TODO get session cookie + refresh tokens
+	//e.GET("/api/v1/login", getUserSession)
+
+	// Get a UserController instance
+	userDao := userdao.NewUserDao()
+	userService := userservice.NewUserService(userDao)
+	userController := user.NewUserController(userService)
+	e.POST("/users", userController.CreateUser)
 
 	// Get a ChannelController instance
 	channelDao := channeldao.NewChannelDao()
@@ -118,25 +133,14 @@ func main() {
 	apiV1Group.PUT("/devices", deviceController.UpdateDevice)
 	apiV1Group.DELETE("/devices/:id", deviceController.DeleteDevice)
 
-	// Get a UserController instance
-	userDao := userdao.NewUserDao()
-	userService := userservice.NewUserService(userDao)
-	userController := user.NewUserController(userService)
-	apiV1Group.POST("/users", userController.CreateUser)
-
-	// TODO get session cookie
-	//apiV1Group.GET("/login", getUserSession)
-	// TODO delete cookies : session + csrf
-	//apiV1Group.POST("/logout", logout)
-
 	// TODO : remove test
 	e.POST("/test", test)
 	e.GET("/test", test)
 
-	// e.Logger.Fatal(e.Start(":17172"))
 	e.Server.Addr = ":17172"
 	graceful.ListenAndServe(e.Server, 5*time.Second)
 	// e.Logger.Fatal(gracehttp.Serve(e.Server))
+	// e.Logger.Fatal(e.Start(":17172"))
 }
 
 func login(c echo.Context) error {
@@ -196,7 +200,7 @@ func login(c echo.Context) error {
 	}
 
 	// CSRF cookie
-	csrfCookie := setCsrfCookie(csrfToken)
+	csrfCookie := setCsrfCookie(csrfToken, time.Now().Add(24 * time.Hour))
 	c.SetCookie(csrfCookie)
 
 	// create jwt token
@@ -207,7 +211,7 @@ func login(c echo.Context) error {
 	}
 
 	// Session cookie
-	jwtCookie := setSessionCookie(jwtToken)
+	jwtCookie := setSessionCookie(jwtToken, time.Now().Add(24 * time.Hour))
 	c.SetCookie(jwtCookie)
 
 	//return c.JSON(http.StatusOK, map[string]string{
@@ -230,13 +234,15 @@ func createCsrfToken(tokenLength int) (string, error) {
 	return token[:tokenLength], nil
 }
 
-func setCsrfCookie(token string) *http.Cookie {
+func setCsrfCookie(token string, expiresAt time.Time) *http.Cookie {
 	cookie := &http.Cookie{}
 	cookie.Path = "/"
 	cookie.Name = "_csrf"
 	cookie.Value = token
-	cookie.Expires = time.Now().Add(24 * time.Hour)
+	// time.Now().Add(24 * time.Hour)
+	cookie.Expires = expiresAt
 	cookie.HttpOnly = false
+	log.Println("csrf cookie: ", cookie)
 	return cookie
 }
 
@@ -260,16 +266,34 @@ func createJwtToken(userID int) (string, error) {
 	return token, nil
 }
 
-func setSessionCookie(token string) *http.Cookie {
+func setSessionCookie(token string, expiresAt time.Time) *http.Cookie {
 	cookie := &http.Cookie{}
 	cookie.Path = "/"
 	cookie.Name = "SESSIONID"
 	cookie.Value = token
-	cookie.Expires = time.Now().Add(24 * time.Hour)
+	// time.Now().Add(24 * time.Hour)
+	cookie.Expires = expiresAt
 	cookie.HttpOnly = true
 	// cookie.Secure = true
 	log.Println("jwt cookie: ", cookie)
 	return cookie
+}
+
+func logout(c echo.Context) error {
+
+	log.Println("logout request")
+
+	// CSRF cookie
+	csrfCookie := setCsrfCookie("", time.Unix(0, 0))
+	c.SetCookie(csrfCookie)
+
+	// Session cookie
+	jwtCookie := setSessionCookie("", time.Unix(0, 0))
+	c.SetCookie(jwtCookie)
+
+	return c.JSON(http.StatusOK, map[string]string{
+		"message":      "You were logged out!",
+	})
 }
 
 func index(c echo.Context) error {
