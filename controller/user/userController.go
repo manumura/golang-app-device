@@ -7,6 +7,8 @@ import (
 	"github.com/labstack/echo"
 	"github.com/manumura/golang-app-device/model/user"
 	"github.com/manumura/golang-app-device/service/user"
+	"strconv"
+	"database/sql"
 )
 
 // UserController : Operations on user
@@ -17,6 +19,31 @@ type UserController struct {
 // NewUserController : Create a new instance of UserController
 func NewUserController(userService userservice.UserService) *UserController {
 	return &UserController{userService}
+}
+
+// GetUser : Get user by id as json
+func (uc UserController) GetUser(c echo.Context) error {
+
+	idAsString := c.Param("id")
+	if idAsString == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "Bad request")
+	}
+
+	id, err := strconv.Atoi(idAsString)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Bad request")
+	}
+
+	user, err := uc.userService.GetUser(id)
+	// TODO : throw more appropriate error
+	switch {
+	case err == sql.ErrNoRows:
+		return echo.NewHTTPError(http.StatusNotFound, "Page not found")
+	case err != nil:
+		return echo.NewHTTPError(http.StatusInternalServerError, "Internal server error")
+	}
+
+	return c.JSON(http.StatusOK, user)
 }
 
 // CreateUser : Create new user

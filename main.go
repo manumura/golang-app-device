@@ -28,6 +28,9 @@ import (
 	"github.com/manumura/golang-app-device/service/user"
 	"github.com/tylerb/graceful"
 	// "github.com/rs/cors"
+	"io"
+	"crypto/rand"
+	"encoding/base64"
 )
 
 // TODO : DI for database
@@ -40,14 +43,38 @@ func main() {
 	// r.GET("/", index)
 	e := echo.New()
 
+	apiV1Group := e.Group("/api/v1")
+
+	// CORS middleware
 	corsConfig := middleware.CORSConfig{
-		AllowOrigins:     []string{"http://localhost:8091"},
-		AllowMethods:     []string{echo.GET, echo.HEAD, echo.PUT, echo.PATCH, echo.POST, echo.DELETE},
-		AllowCredentials: true,
+		AllowOrigins:     	[]string{"http://localhost:8091"},
+		AllowMethods:     	[]string{echo.GET, echo.HEAD, echo.PUT, echo.PATCH, echo.POST, echo.DELETE, echo.OPTIONS},
+		AllowHeaders:		[]string{
+			echo.HeaderOrigin,
+			echo.HeaderContentType,
+			echo.HeaderAccept,
+			echo.HeaderCookie,
+			echo.HeaderAuthorization,
+			echo.HeaderAccessControlAllowCredentials,
+			echo.HeaderSetCookie,
+			echo.HeaderXCSRFToken,
+		},
+		AllowCredentials: 	true,
 	}
 	e.Use(middleware.CORSWithConfig(corsConfig))
 
-	// TODO
+	// CSRF middleware
+	csrfConfig := middleware.CSRFConfig{
+		TokenLookup: 	"header:" + echo.HeaderXCSRFToken,
+		CookieName:   	"_csrf",
+		CookiePath: 	"/",
+		CookieHTTPOnly: false,
+		CookieSecure:   false,
+
+	}
+	apiV1Group.Use(middleware.CSRFWithConfig(csrfConfig))
+
+	// TODO session cookie JWT middleware => protect endpoints
 	// sess := sessions.NewCookieStore([]byte("secret"))
 	// sess.Options = &sessions.Options{
 	// 	Path:     "/",
@@ -56,12 +83,15 @@ func main() {
 	// }
 	// e.Use(session.Middleware(sess))
 
-	apiV1Group := e.Group("/api/v1")
-	// this logs the server interaction
+	// Logs middleware : this logs the server interaction
 	apiV1Group.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
 		Format: `[${time_rfc3339}]  ${status}  ${method} ${host}${path} ${latency_human}` + "\n",
 	}))
 
+	// Login endpoint
+	e.POST("/api/v1/login", login)
+
+	// Index
 	apiV1Group.GET("/", index)
 
 	// Get a ChannelController instance
@@ -94,13 +124,12 @@ func main() {
 	userController := user.NewUserController(userService)
 	apiV1Group.POST("/users", userController.CreateUser)
 
-	// TODO : protect endpoints
-	// Access token endpoint
-	apiV1Group.POST("/login", login)
-	// Refresh token endpoint
-	// oauth/refresh
+	// TODO get session cookie
+	//apiV1Group.GET("/login", getUserSession)
+	// TODO delete cookies : session + csrf
+	//apiV1Group.POST("/logout", logout)
 
-	// TODO : remove
+	// TODO : remove test
 	e.POST("/test", test)
 	e.GET("/test", test)
 
@@ -114,8 +143,21 @@ func login(c echo.Context) error {
 
 	log.Println("login request")
 
-	username := c.FormValue("username")
-	password := c.FormValue("password")
+	type login struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+
+	l := &login{}
+	if err := c.Bind(l); err != nil {
+		log.Println(err)
+		return err
+	}
+
+	//username := c.FormValue("username")
+	//password := c.FormValue("password")
+	username := l.Username
+	password := l.Password
 	log.Println(username, password)
 
 	if username == "" || password == "" {
@@ -127,15 +169,15 @@ func login(c echo.Context) error {
 	// https://github.com/go-validator/validator
 	userDao := userdao.NewUserDao()
 	userService := userservice.NewUserService(userDao)
-	user, err := userService.GetUserByUsername(username)
+	u, err := userService.GetUserByUsername(username)
 
 	if err != nil {
 		log.Println("Cannot get user")
 		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid input"})
 	}
-	log.Println("user: ", user)
+	log.Println("user: ", u)
 
-	valid, err := security.VerifyPassword(user.Password, password)
+	valid, err := security.VerifyPassword(u.Password, password)
 
 	if err != nil {
 		log.Println("Cannot validate password")
@@ -146,26 +188,56 @@ func login(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid username/password"})
 	}
 
+	// create csrf token
+	csrfToken, err := createCsrfToken(32)
+	if err != nil {
+		log.Println("Error Creating CSRF token", err)
+		return c.JSON(http.StatusInternalServerError, "Something went wrong")
+	}
+
+	// CSRF cookie
+	csrfCookie := setCsrfCookie(csrfToken)
+	c.SetCookie(csrfCookie)
+
 	// create jwt token
-	token, err := createJwtToken(user.ID)
+	jwtToken, err := createJwtToken(u.ID)
 	if err != nil {
 		log.Println("Error Creating JWT token", err)
-		return c.JSON(http.StatusInternalServerError, "something went wrong")
+		return c.JSON(http.StatusInternalServerError, "Something went wrong")
 	}
 
 	// Session cookie
-	cookie := getSessionCookie(token)
-	c.SetCookie(cookie)
+	jwtCookie := setSessionCookie(jwtToken)
+	c.SetCookie(jwtCookie)
 
-	// sess, _ := session.Get("secret", c)
-	// sess.Values["foo"] = "bar"
-	// sess.Save(c.Request(), c.Response())
-	// log.Println(sess)
+	//return c.JSON(http.StatusOK, map[string]string{
+	//	"message":      "You were logged in!",
+	//	"access_token": token,
+	//})
+	return c.JSON(http.StatusOK, u)
+}
 
-	return c.JSON(http.StatusOK, map[string]string{
-		"message":      "You were logged in!",
-		"access_token": token,
-	})
+func createCsrfToken(tokenLength int) (string, error) {
+	buffer := make([]byte, tokenLength)
+
+	if _, err := io.ReadFull(rand.Reader, buffer); err != nil {
+		return "", err
+	}
+
+	token := base64.StdEncoding.EncodeToString(buffer)
+	//log.Println("CSRFF= ", token)
+
+	return token[:tokenLength], nil
+}
+
+func setCsrfCookie(token string) *http.Cookie {
+	cookie := &http.Cookie{}
+	cookie.Path = "/"
+	cookie.Name = "_csrf"
+	cookie.Value = token
+	cookie.Expires = time.Now().Add(24 * time.Hour)
+	cookie.HttpOnly = false
+	return cookie
 }
 
 // TODO : RS512
@@ -188,16 +260,15 @@ func createJwtToken(userID int) (string, error) {
 	return token, nil
 }
 
-func getSessionCookie(token string) *http.Cookie {
+func setSessionCookie(token string) *http.Cookie {
 	cookie := &http.Cookie{}
 	cookie.Path = "/"
 	cookie.Name = "SESSIONID"
 	cookie.Value = token
 	cookie.Expires = time.Now().Add(24 * time.Hour)
 	cookie.HttpOnly = true
-	// TODO
 	// cookie.Secure = true
-	log.Println("cookie: ", cookie)
+	log.Println("jwt cookie: ", cookie)
 	return cookie
 }
 
