@@ -8,7 +8,7 @@ import (
 
 	// "github.com/julienschmidt/httprouter"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go"
 	// "github.com/facebookgo/grace/gracehttp"
 
 	"github.com/labstack/echo"
@@ -101,7 +101,7 @@ func main() {
 	e.POST("/api/v1/logout", logout)
 
 	// TODO get session cookie + refresh tokens
-	//e.GET("/api/v1/login", getUserSession)
+	e.GET("/api/v1/session", isUserLoggedIn)
 
 	// Get a UserController instance
 	userDao := userdao.NewUserDao()
@@ -294,6 +294,68 @@ func logout(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{
 		"message":      "You were logged out!",
 	})
+}
+
+func isUserLoggedIn(c echo.Context) error {
+
+	log.Println("check user session")
+
+	k, err := c.Cookie("SESSIONID")
+	if err != nil {
+		log.Println(err)
+		return c.JSON(http.StatusUnauthorized, false)
+	}
+
+	jwtToken := k.Value
+	if jwtToken == "" {
+		return c.JSON(http.StatusUnauthorized, false)
+	}
+
+	// validate the token
+	token, err := jwt.Parse(jwtToken, func(token *jwt.Token) (interface{}, error) {
+		// since we only use the one private key to sign the tokens,
+		// we also only use its public counter part to verify
+		//return verifyKey, nil
+		return []byte("mySecret"), nil
+	})
+
+	// branch out into the possible error from signing
+	switch err.(type) {
+
+	case nil: // no error
+
+		if !token.Valid { // but may still be invalid
+			log.Println("WHAT? Invalid Token? F*** off!")
+			return c.JSON(http.StatusUnauthorized, false)
+		}
+
+		// see stdout and watch for the CustomUserInfo, nicely unmarshalled
+		log.Printf("Someone accessed resricted area! Token:%+v\n", token)
+		return c.JSON(http.StatusOK, true)
+
+	case *jwt.ValidationError: // something was wrong during the validation
+		vErr := err.(*jwt.ValidationError)
+
+		switch vErr.Errors {
+		case jwt.ValidationErrorExpired:
+			// TODO refresh token
+			log.Println("Token Expired, get a new one.")
+			log.Printf("ValidationError error: %+v\n", vErr.Errors)
+			return c.JSON(http.StatusUnauthorized, false)
+
+		default:
+			log.Println("Error while Parsing Token!")
+			log.Printf("ValidationError error: %+v\n", vErr.Errors)
+			return c.JSON(http.StatusInternalServerError, false)
+		}
+
+	default: // something else went wrong
+		log.Println("Error while Parsing Token!")
+		log.Printf("Token parse error: %v\n", err)
+		return c.JSON(http.StatusInternalServerError, false)
+	}
+
+	return c.JSON(http.StatusOK, true)
 }
 
 func index(c echo.Context) error {
