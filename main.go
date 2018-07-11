@@ -31,6 +31,26 @@ import (
 	"io"
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
+	"fmt"
+)
+
+const (
+	secret = "mySecret"
+)
+
+var (
+	userDao = userdao.NewUserDao()
+	userService = userservice.NewUserService(userDao)
+
+	channelDao = channeldao.NewChannelDao()
+	channelService = channelservice.NewChannelService(channelDao)
+
+	deviceDao = devicedao.NewDeviceDao()
+	deviceService = deviceservice.NewDeviceService(deviceDao)
+
+	deviceTypeDao = devicetypedao.NewDeviceTypeDao()
+	deviceTypeService = devicetypeservice.NewDeviceTypeService(deviceTypeDao)
 )
 
 // TODO : DI for database
@@ -85,7 +105,7 @@ func main() {
 	// TODO : constants
 	// JWT middleware
 	jwtConfig := middleware.JWTConfig{
-		SigningKey: []byte("mySecret"),
+		SigningKey: []byte(secret),
 		SigningMethod: "HS512",
 		TokenLookup: "cookie:SESSIONID",
 	}
@@ -104,28 +124,20 @@ func main() {
 	e.GET("/api/v1/session", isUserLoggedIn)
 
 	// Get a UserController instance
-	userDao := userdao.NewUserDao()
-	userService := userservice.NewUserService(userDao)
 	userController := user.NewUserController(userService)
 	e.POST("/users", userController.CreateUser)
 
 	// Get a ChannelController instance
-	channelDao := channeldao.NewChannelDao()
-	channelService := channelservice.NewChannelService(channelDao)
 	channelController := channel.NewChannelController(channelService)
 	apiV1Group.GET("/channels", channelController.FindChannels)
 	apiV1Group.GET("/channels/:id", channelController.GetChannel)
 
 	// Get a DeviceTypeController instance
-	deviceTypeDao := devicetypedao.NewDeviceTypeDao()
-	deviceTypeService := devicetypeservice.NewDeviceTypeService(deviceTypeDao)
 	deviceTypeController := devicetypecontroller.NewDeviceTypeController(deviceTypeService)
 	apiV1Group.GET("/deviceTypes", deviceTypeController.FindDeviceTypes)
 	apiV1Group.GET("/deviceTypes/:id", deviceTypeController.GetDeviceType)
 
 	// Get a DeviceController instance
-	deviceDao := devicedao.NewDeviceDao()
-	deviceService := deviceservice.NewDeviceService(deviceDao)
 	deviceController := device.NewDeviceController(deviceService)
 	apiV1Group.GET("/devices", deviceController.FindDevices)
 	apiV1Group.GET("/devices/:id", deviceController.GetDevice)
@@ -135,7 +147,6 @@ func main() {
 
 	// TODO : remove test
 	e.POST("/test", test)
-	e.GET("/test", test)
 
 	e.Server.Addr = ":17172"
 	graceful.ListenAndServe(e.Server, 5*time.Second)
@@ -248,7 +259,7 @@ func setCsrfCookie(token string, expiresAt time.Time) *http.Cookie {
 
 // TODO : RS512
 func createJwtToken(userID int) (string, error) {
-	claims := jwt.StandardClaims{
+	claims := jwt.StandardClaims {
 		Subject: strconv.Itoa(userID),
 		// Id:        "main_user_id",
 		IssuedAt:  time.Now().Unix(),
@@ -257,7 +268,7 @@ func createJwtToken(userID int) (string, error) {
 
 	rawToken := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
 
-	token, err := rawToken.SignedString([]byte("mySecret"))
+	token, err := rawToken.SignedString([]byte(secret))
 	if err != nil {
 		return "", err
 	}
@@ -312,11 +323,21 @@ func isUserLoggedIn(c echo.Context) error {
 	}
 
 	// validate the token
-	token, err := jwt.Parse(jwtToken, func(token *jwt.Token) (interface{}, error) {
+	claims := &jwt.StandardClaims{}
+	token, err := jwt.ParseWithClaims(jwtToken, claims, func(token *jwt.Token) (interface{}, error) {
+
+		//log.Println("Signin method:",  token.Method)
+
+		// Don't forget to validate the alg is what you expect:
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			log.Println("Unexpected signing method: ", token.Header["alg"])
+			return nil, errors.New(fmt.Sprintf("Unexpected signing method: %v", token.Header["alg"]))
+		}
+
 		// since we only use the one private key to sign the tokens,
 		// we also only use its public counter part to verify
 		//return verifyKey, nil
-		return []byte("mySecret"), nil
+		return []byte(secret), nil
 	})
 
 	// branch out into the possible error from signing
@@ -328,6 +349,31 @@ func isUserLoggedIn(c echo.Context) error {
 			log.Println("WHAT? Invalid Token? F*** off!")
 			return c.JSON(http.StatusUnauthorized, false)
 		}
+
+		if err = claims.Valid(); err != nil {
+			log.Println("WHAT? Invalid Claims? F*** off!")
+			return c.JSON(http.StatusUnauthorized, false)
+		}
+
+		log.Println("subject: ", claims.Subject)
+		if claims.Subject == "" {
+			log.Println("Subject is empty")
+			return c.JSON(http.StatusUnauthorized, false)
+		}
+
+		userID, err := strconv.Atoi(claims.Subject)
+		if err != nil {
+			log.Println("Error while converting subject to int")
+			return c.JSON(http.StatusInternalServerError, false)
+		}
+
+		u, err := userService.GetUser(userID)
+		if err != nil {
+			log.Println("User not found with ID: ", userID)
+			return c.JSON(http.StatusNotFound, false)
+		}
+
+		log.Println("user found: ", u)
 
 		// see stdout and watch for the CustomUserInfo, nicely unmarshalled
 		log.Printf("Someone accessed resricted area! Token:%+v\n", token)
@@ -354,8 +400,6 @@ func isUserLoggedIn(c echo.Context) error {
 		log.Printf("Token parse error: %v\n", err)
 		return c.JSON(http.StatusInternalServerError, false)
 	}
-
-	return c.JSON(http.StatusOK, true)
 }
 
 func index(c echo.Context) error {

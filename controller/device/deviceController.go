@@ -24,11 +24,6 @@ func NewDeviceController(deviceService deviceservice.DeviceService) *DeviceContr
 // FindDevices : Get all devices as json
 func (dc DeviceController) FindDevices(c echo.Context) error {
 
-	// TODO : remove test
-	log.Println("X-CSRF-Token= ", c.Request().Header.Get("X-CSRF-Token"))
-	k, _ := c.Cookie("SESSIONID")
-	log.Println("SESSIONID= ", k)
-
 	devices, err := dc.deviceService.FindDevices()
 	if err != nil {
 		log.Println(err)
