@@ -17,13 +17,23 @@ func (cd ChannelDaoImpl) FindChannels() ([]channelmodel.Channel, error) {
 
 	log.Println("ChannelDaoImpl")
 
-	rows, err := config.Database.Query("SELECT c.dist_channel_id, c.name, c.description FROM app_dist_channel c")
+	sql := "SELECT c.dist_channel_id, c.name, c.description FROM app_dist_channel c"
+	//rows, err := config.Database.Query(sql)
+
+	stmt, err := config.Database.Prepare(sql)
 	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	rows, err := stmt.Query()
+	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 	defer rows.Close()
 
-	channels := []channelmodel.Channel{}
+	var channels []channelmodel.Channel
 	for rows.Next() {
 		channel := channelmodel.Channel{}
 		err := rows.Scan(&channel.ID, &channel.Name, &channel.Description) // order matters
@@ -52,9 +62,18 @@ func (cd ChannelDaoImpl) GetChannel(id int) (channelmodel.Channel, error) {
 		return channel, errors.New("id cannot be empty")
 	}
 
-	row := config.Database.QueryRow("SELECT c.dist_channel_id, c.name, c.description FROM app_dist_channel c WHERE c.dist_channel_id = $1", id)
+	sql := "SELECT c.dist_channel_id, c.name, c.description FROM app_dist_channel c WHERE c.dist_channel_id = $1"
+	//row := config.Database.QueryRow(sql, id)
 
-	err := row.Scan(&channel.ID, &channel.Name, &channel.Description)
+	//err := row.Scan(&channel.ID, &channel.Name, &channel.Description)
+
+	stmt, err := config.Database.Prepare(sql)
+	if err != nil {
+		log.Println(err)
+		return channel, err
+	}
+
+	err = stmt.QueryRow(id).Scan(&channel.ID, &channel.Name, &channel.Description)
 	if err != nil {
 		log.Println(err)
 		return channel, err

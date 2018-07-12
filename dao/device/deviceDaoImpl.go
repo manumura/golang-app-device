@@ -22,13 +22,22 @@ func (dd DeviceDaoImpl) FindDevices() ([]devicemodel.Device, error) {
 	sql += "LEFT JOIN device_info di ON di.device_info_id = dr.device_info_id "
 	sql += "LEFT JOIN device_type dt ON dt.device_type_id = di.device_type_id "
 
-	rows, err := config.Database.Query(sql)
+	//rows, err := config.Database.Query(sql)
+
+	stmt, err := config.Database.Prepare(sql)
 	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	rows, err := stmt.Query()
+	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 	defer rows.Close()
 
-	devices := []devicemodel.Device{}
+	var devices []devicemodel.Device
 	for rows.Next() {
 		device := devicemodel.Device{}
 		err := rows.Scan(&device.ID, &device.Imei, &device.RequestBy, &device.Status, &device.StatusText, &device.Timestamp) // order matters
@@ -66,9 +75,20 @@ func (dd DeviceDaoImpl) GetDevice(id int) (devicemodel.Device, error) {
 	sql += "LEFT JOIN device_type dt ON dt.device_type_id = di.device_type_id "
 	sql += "WHERE dr.device_request_id = $1 "
 
-	row := config.Database.QueryRow(sql, id)
+	// TODO
+	//row := config.Database.QueryRow(sql, id)
 
-	err := row.Scan(&device.ID, &device.Imei, &device.RequestBy, &device.Status, &device.StatusText, &device.Timestamp, &device.DeviceInfo.AndroidDeviceID, &device.DeviceInfo.AndroidVersion,
+	//err = row.QueryRow(sql, id).Scan(&device.ID, &device.Imei, &device.RequestBy, &device.Status, &device.StatusText, &device.Timestamp, &device.DeviceInfo.AndroidDeviceID, &device.DeviceInfo.AndroidVersion,
+	//	&device.DeviceInfo.APILevel, &device.DeviceInfo.Brand, &device.DeviceInfo.BuildNumber, &device.DeviceInfo.CPUHardware, &device.DeviceInfo.DisplayDensity, &device.DeviceInfo.DisplayPhysicalSize,
+	//	&device.DeviceInfo.DisplayResolution, &device.DeviceInfo.HardwareSerialNo, &device.DeviceInfo.InstructionSets, &device.DeviceInfo.Manufacturer, &device.DeviceInfo.Model)
+
+	stmt, err := config.Database.Prepare(sql)
+	if err != nil {
+		log.Println(err)
+		return device, err
+	}
+
+	err = stmt.QueryRow(id).Scan(&device.ID, &device.Imei, &device.RequestBy, &device.Status, &device.StatusText, &device.Timestamp, &device.DeviceInfo.AndroidDeviceID, &device.DeviceInfo.AndroidVersion,
 		&device.DeviceInfo.APILevel, &device.DeviceInfo.Brand, &device.DeviceInfo.BuildNumber, &device.DeviceInfo.CPUHardware, &device.DeviceInfo.DisplayDensity, &device.DeviceInfo.DisplayPhysicalSize,
 		&device.DeviceInfo.DisplayResolution, &device.DeviceInfo.HardwareSerialNo, &device.DeviceInfo.InstructionSets, &device.DeviceInfo.Manufacturer, &device.DeviceInfo.Model)
 	if err != nil {
@@ -205,13 +225,22 @@ func (dd DeviceDaoImpl) Create(d devicemodel.Device) (devicemodel.Device, error)
 // FindDeviceStatuses : retrieve device statuses from the database
 func (dd DeviceDaoImpl) FindDeviceStatuses() ([]devicemodel.DeviceStatus, error) {
 
-	rows, err := config.Database.Query("SELECT ds.device_status_id, ds.name FROM device_status ds")
+	sql := "SELECT ds.device_status_id, ds.name FROM device_status ds"
+	//rows, err := config.Database.Query(sql)
+
+	stmt, err := config.Database.Prepare(sql)
 	if err != nil {
+		return nil, err
+	}
+
+	rows, err := stmt.Query()
+	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 	defer rows.Close()
 
-	deviceStatuses := []devicemodel.DeviceStatus{}
+	var deviceStatuses []devicemodel.DeviceStatus
 	for rows.Next() {
 		deviceStatus := devicemodel.DeviceStatus{}
 		err := rows.Scan(&deviceStatus.ID, &deviceStatus.Name) // order matters

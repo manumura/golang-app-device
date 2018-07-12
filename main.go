@@ -125,7 +125,7 @@ func main() {
 
 	// Get a UserController instance
 	userController := user.NewUserController(userService)
-	e.POST("/users", userController.CreateUser)
+	e.POST("/api/v1/users", userController.CreateUser)
 
 	// Get a ChannelController instance
 	channelController := channel.NewChannelController(channelService)

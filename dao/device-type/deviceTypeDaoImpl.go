@@ -15,13 +15,23 @@ type DeviceTypeDaoImpl struct {
 // FindDeviceTypes : retrieve device types from the database
 func (dtd DeviceTypeDaoImpl) FindDeviceTypes() ([]devicetypemodel.DeviceType, error) {
 
-	rows, err := config.Database.Query("SELECT dt.device_type_id, dt.name, dt.description FROM device_type dt")
+	sql := "SELECT dt.device_type_id, dt.name, dt.description FROM device_type dt"
+	//rows, err := config.Database.Query(sql)
+
+	stmt, err := config.Database.Prepare(sql)
 	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	rows, err := stmt.Query()
+	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 	defer rows.Close()
 
-	deviceTypes := []devicetypemodel.DeviceType{}
+	var deviceTypes []devicetypemodel.DeviceType
 	for rows.Next() {
 		deviceType := devicetypemodel.DeviceType{}
 		err := rows.Scan(&deviceType.ID, &deviceType.Name, &deviceType.Description) // order matters
@@ -49,9 +59,18 @@ func (dtd DeviceTypeDaoImpl) GetDeviceType(id int) (devicetypemodel.DeviceType, 
 		return deviceType, errors.New("id cannot be empty")
 	}
 
-	row := config.Database.QueryRow("SELECT dt.device_type_id, dt.name, dt.description FROM device_type dt WHERE dt.device_type_id = $1", id)
+	sql := "SELECT dt.device_type_id, dt.name, dt.description FROM device_type dt WHERE dt.device_type_id = $1"
+	//row := config.Database.QueryRow(sql, id)
 
-	err := row.Scan(&deviceType.ID, &deviceType.Name, &deviceType.Description)
+	//err := row.Scan(&deviceType.ID, &deviceType.Name, &deviceType.Description)
+
+	stmt, err := config.Database.Prepare(sql)
+	if err != nil {
+		log.Println(err)
+		return deviceType, err
+	}
+
+	err = stmt.QueryRow(id).Scan(&deviceType.ID, &deviceType.Name, &deviceType.Description)
 	if err != nil {
 		log.Println(err)
 		return deviceType, err

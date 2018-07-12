@@ -19,14 +19,9 @@ type UserDaoImpl struct {
 // GetUser : retrieve user by id from the database
 func (ud UserDaoImpl) GetUser(id int) (usermodel.User, error) {
 
-	// user := usermodel.User{}
-
 	if id == 0 {
 		return usermodel.User{}, errors.New("id cannot be empty")
 	}
-
-	// row := config.Database.QueryRow("SELECT u.id, u.username, u.password, u.last_name, u.first_name FROM app_user u WHERE u.id = $1", id)
-	// err := row.Scan(&user.ID, &user.Username, &user.Password, &user.LastName, &user.LastName)
 
 	query := "SELECT u.id, u.username, u.last_name, u.first_name, r.id, r.role_name "
 	query += "FROM app_user u "
@@ -34,9 +29,17 @@ func (ud UserDaoImpl) GetUser(id int) (usermodel.User, error) {
 	query += "LEFT JOIN role r ON r.id = ur.role_id  "
 	query += "WHERE u.id = $1"
 
-	rows, err := config.Database.Query(query, id)
+	//rows, err := config.Database.Query(query, id)
+	stmt, err := config.Database.Prepare(query)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return usermodel.User{}, err
+	}
+
+	rows, err := stmt.Query(id)
+	if err != nil {
+		log.Println(err)
+		return usermodel.User{}, err
 	}
 	defer rows.Close()
 
@@ -78,9 +81,18 @@ func (ud UserDaoImpl) GetUserByUsername(username string) (usermodel.User, error)
 		return user, errors.New("username cannot be empty")
 	}
 
-	row := config.Database.QueryRow("SELECT u.id, u.username, u.password, u.last_name, u.first_name FROM app_user u WHERE upper(u.username) = $1", strings.ToUpper(strings.Trim(username, " ")))
+	query := "SELECT u.id, u.username, u.password, u.last_name, u.first_name FROM app_user u WHERE upper(u.username) = $1"
+	//row := config.Database.QueryRow(query, strings.ToUpper(strings.Trim(username, " ")))
 
-	err := row.Scan(&user.ID, &user.Username, &user.Password, &user.LastName, &user.LastName)
+	//err := row.Scan(&user.ID, &user.Username, &user.Password, &user.LastName, &user.LastName)
+
+	stmt, err := config.Database.Prepare(query)
+	if err != nil {
+		log.Println(err)
+		return user, err
+	}
+
+	err = stmt.QueryRow(strings.ToUpper(strings.Trim(username, " "))).Scan(&user.ID, &user.Username, &user.Password, &user.LastName, &user.LastName)
 	if err != nil {
 		log.Println(err)
 		return user, err
@@ -99,9 +111,18 @@ func (ud UserDaoImpl) CheckUsernameUnique(username string) (bool, error) {
 		return false, errors.New("username cannot be empty")
 	}
 
-	row := config.Database.QueryRow("SELECT u.id FROM app_user u WHERE upper(u.username) = $1", strings.ToUpper(strings.Trim(username, " ")))
+	query := "SELECT u.id FROM app_user u WHERE upper(u.username) = $1"
+	//row := config.Database.QueryRow(query, strings.ToUpper(strings.Trim(username, " ")))
 
-	err := row.Scan(&user.ID)
+	//err := row.Scan(&user.ID)
+
+	stmt, err := config.Database.Prepare(query)
+	if err != nil {
+		log.Println(err)
+		return false, err
+	}
+
+	err = stmt.QueryRow(strings.ToUpper(strings.Trim(username, " "))).Scan(&user.ID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return true, nil
@@ -138,7 +159,8 @@ func (ud UserDaoImpl) Create(u usermodel.User) (usermodel.User, error) {
 	}
 
 	// execute insert on user table
-	stmt, err := tx.Prepare("INSERT INTO app_user (username, password, created_date_time, is_active, first_name, last_name) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id")
+	userQuery := "INSERT INTO app_user (username, password, created_date_time, is_active, first_name, last_name) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id"
+	stmt, err := tx.Prepare(userQuery)
 	if err != nil {
 		tx.Rollback()
 		log.Println(err)
@@ -155,7 +177,8 @@ func (ud UserDaoImpl) Create(u usermodel.User) (usermodel.User, error) {
 	log.Println("userid: ", userid)
 
 	// execute insert on user role table
-	stmt, err = tx.Prepare("INSERT INTO user_role (user_id, role_id) SELECT $1, id FROM role WHERE role_name = 'STANDARD_USER'")
+	rolesQuery := "INSERT INTO user_role (user_id, role_id) SELECT $1, id FROM role WHERE role_name = 'STANDARD_USER'"
+	stmt, err = tx.Prepare(rolesQuery)
 	if err != nil {
 		tx.Rollback()
 		log.Println(err)
