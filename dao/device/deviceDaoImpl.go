@@ -11,6 +11,7 @@ import (
 
 // DeviceDaoImpl : implementation for DB operations on device
 type DeviceDaoImpl struct {
+	db *config.DB
 }
 
 // FindDevices : retrieve devices from the database
@@ -24,7 +25,7 @@ func (dd DeviceDaoImpl) FindDevices() ([]devicemodel.Device, error) {
 
 	//rows, err := config.Database.Query(sql)
 
-	stmt, err := config.Database.Prepare(sql)
+	stmt, err := dd.db.Prepare(sql)
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -82,7 +83,7 @@ func (dd DeviceDaoImpl) GetDevice(id int) (devicemodel.Device, error) {
 	//	&device.DeviceInfo.APILevel, &device.DeviceInfo.Brand, &device.DeviceInfo.BuildNumber, &device.DeviceInfo.CPUHardware, &device.DeviceInfo.DisplayDensity, &device.DeviceInfo.DisplayPhysicalSize,
 	//	&device.DeviceInfo.DisplayResolution, &device.DeviceInfo.HardwareSerialNo, &device.DeviceInfo.InstructionSets, &device.DeviceInfo.Manufacturer, &device.DeviceInfo.Model)
 
-	stmt, err := config.Database.Prepare(sql)
+	stmt, err := dd.db.Prepare(sql)
 	if err != nil {
 		log.Println(err)
 		return device, err
@@ -107,7 +108,7 @@ func (dd DeviceDaoImpl) Delete(id int) error {
 		return errors.New("id cannot be empty")
 	}
 
-	tx, err := config.Database.Begin()
+	tx, err := dd.db.Begin()
 	if err != nil {
 		log.Println(err)
 		return err
@@ -147,7 +148,7 @@ func (dd DeviceDaoImpl) Update(d devicemodel.Device) (devicemodel.Device, error)
 		return result, errors.New("parameters cannot be empty")
 	}
 
-	tx, err := config.Database.Begin()
+	tx, err := dd.db.Begin()
 	if err != nil {
 		log.Println(err)
 		return result, err
@@ -190,7 +191,7 @@ func (dd DeviceDaoImpl) Create(d devicemodel.Device) (devicemodel.Device, error)
 		return result, errors.New("parameters cannot be empty")
 	}
 
-	tx, err := config.Database.Begin()
+	tx, err := dd.db.Begin()
 	if err != nil {
 		log.Println(err)
 		return result, err
@@ -228,7 +229,7 @@ func (dd DeviceDaoImpl) FindDeviceStatuses() ([]devicemodel.DeviceStatus, error)
 	sql := "SELECT ds.device_status_id, ds.name FROM device_status ds"
 	//rows, err := config.Database.Query(sql)
 
-	stmt, err := config.Database.Prepare(sql)
+	stmt, err := dd.db.Prepare(sql)
 	if err != nil {
 		return nil, err
 	}

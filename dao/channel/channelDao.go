@@ -1,6 +1,9 @@
 package channeldao
 
-import "github.com/manumura/golang-app-device/model/channel"
+import (
+	"github.com/manumura/golang-app-device/model/channel"
+	"github.com/manumura/golang-app-device/config"
+)
 
 // ChannelDao : interface defining DB operations on channel
 type ChannelDao interface {
@@ -9,7 +12,7 @@ type ChannelDao interface {
 }
 
 // NewChannelDao : Create a new instance of ChannelDao implemenation
-func NewChannelDao() ChannelDao {
-	return ChannelDaoImpl{}
+func NewChannelDao(db *config.DB) ChannelDao {
+	return ChannelDaoImpl{db}
 	//return ChannelDaoImpl2{}
 }

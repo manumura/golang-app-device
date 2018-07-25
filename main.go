@@ -33,6 +33,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/manumura/golang-app-device/config"
 )
 
 const (
@@ -40,20 +41,21 @@ const (
 )
 
 var (
-	userDao = userdao.NewUserDao()
+	db = config.NewDB(config.GetConnectionString())
+
+	userDao = userdao.NewUserDao(db)
 	userService = userservice.NewUserService(userDao)
 
-	channelDao = channeldao.NewChannelDao()
+	channelDao = channeldao.NewChannelDao(db)
 	channelService = channelservice.NewChannelService(channelDao)
 
-	deviceDao = devicedao.NewDeviceDao()
+	deviceDao = devicedao.NewDeviceDao(db)
 	deviceService = deviceservice.NewDeviceService(deviceDao)
 
-	deviceTypeDao = devicetypedao.NewDeviceTypeDao()
+	deviceTypeDao = devicetypedao.NewDeviceTypeDao(db)
 	deviceTypeService = devicetypeservice.NewDeviceTypeService(deviceTypeDao)
 )
 
-// TODO : DI for database
 // Application starts here.
 func main() {
 
@@ -182,7 +184,7 @@ func login(c echo.Context) error {
 
 	// TODO : password policy
 	// https://github.com/go-validator/validator
-	userDao := userdao.NewUserDao()
+	userDao := userdao.NewUserDao(db)
 	userService := userservice.NewUserService(userDao)
 	u, err := userService.GetUserByUsername(username)
 
@@ -367,6 +369,7 @@ func isUserLoggedIn(c echo.Context) error {
 			return c.JSON(http.StatusInternalServerError, false)
 		}
 
+		// TODO only is_active user
 		u, err := userService.GetUser(userID)
 		if err != nil {
 			log.Println("User not found with ID: ", userID)

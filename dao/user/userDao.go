@@ -1,6 +1,9 @@
 package userdao
 
-import "github.com/manumura/golang-app-device/model/user"
+import (
+	"github.com/manumura/golang-app-device/model/user"
+	"github.com/manumura/golang-app-device/config"
+)
 
 // UserDao : interface defining DB operations on user
 type UserDao interface {
@@ -11,6 +14,6 @@ type UserDao interface {
 }
 
 // NewUserDao : Create a new instance of UserDao implemenation
-func NewUserDao() UserDao {
-	return UserDaoImpl{}
+func NewUserDao(db *config.DB) UserDao {
+	return UserDaoImpl{db}
 }

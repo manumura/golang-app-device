@@ -1,6 +1,9 @@
 package devicedao
 
-import "github.com/manumura/golang-app-device/model/device"
+import (
+	"github.com/manumura/golang-app-device/model/device"
+	"github.com/manumura/golang-app-device/config"
+)
 
 // DeviceDao : interface defining DB operations on device
 type DeviceDao interface {
@@ -13,6 +16,6 @@ type DeviceDao interface {
 }
 
 // NewDeviceDao : Create a new instance of DeviceDao implemenation
-func NewDeviceDao() DeviceDao {
-	return DeviceDaoImpl{}
+func NewDeviceDao(db *config.DB) DeviceDao {
+	return DeviceDaoImpl{db}
 }

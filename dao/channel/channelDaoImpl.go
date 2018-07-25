@@ -10,6 +10,7 @@ import (
 
 // ChannelDaoImpl : implementation for DB operations on channel
 type ChannelDaoImpl struct {
+	db *config.DB
 }
 
 // FindChannels : retrieve channels from the database
@@ -20,7 +21,7 @@ func (cd ChannelDaoImpl) FindChannels() ([]channelmodel.Channel, error) {
 	sql := "SELECT c.dist_channel_id, c.name, c.description FROM app_dist_channel c"
 	//rows, err := config.Database.Query(sql)
 
-	stmt, err := config.Database.Prepare(sql)
+	stmt, err := cd.db.Prepare(sql)
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -67,7 +68,7 @@ func (cd ChannelDaoImpl) GetChannel(id int) (channelmodel.Channel, error) {
 
 	//err := row.Scan(&channel.ID, &channel.Name, &channel.Description)
 
-	stmt, err := config.Database.Prepare(sql)
+	stmt, err := cd.db.Prepare(sql)
 	if err != nil {
 		log.Println(err)
 		return channel, err

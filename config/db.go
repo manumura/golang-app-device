@@ -7,10 +7,32 @@ import (
 	_ "github.com/lib/pq"
 )
 
+// TODO : to be deleted ////////////////////////////////////
 // Database : The pointer to the sql.DB
-var Database *sql.DB
+//var Database *sql.DB
 
-func init() {
+//func init() {
+//
+//	conn := GetConnectionString()
+//
+//	var err error
+//	Database, err = sql.Open("postgres", conn)
+//	if err != nil {
+//		panic(err)
+//	}
+//
+//	if err = Database.Ping(); err != nil {
+//		panic(err)
+//	}
+//	log.Println("Database connection successful.")
+//}
+////////////////////////////////////////////////////////////
+
+type DB struct {
+	*sql.DB
+}
+
+func GetConnectionString() string {
 
 	config := InitDatabaseConfiguration()
 
@@ -38,15 +60,22 @@ func init() {
 	// connectionString += "?sslmode=disable"
 
 	log.Println(connectionString)
+	return connectionString
+}
 
-	var err error
-	Database, err = sql.Open("postgres", connectionString)
+// DI for database
+func NewDB(dataSourceName string) *DB {
+
+	log.Println("Database connection attempt: ", dataSourceName)
+	db, err := sql.Open("postgres", dataSourceName)
 	if err != nil {
 		panic(err)
 	}
 
-	if err = Database.Ping(); err != nil {
+	if err = db.Ping(); err != nil {
 		panic(err)
 	}
 	log.Println("Database connection successful.")
+
+	return &DB{db}
 }

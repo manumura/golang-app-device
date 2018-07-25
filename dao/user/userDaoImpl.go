@@ -14,6 +14,7 @@ import (
 
 // UserDaoImpl : implementation for DB operations on user
 type UserDaoImpl struct {
+	db *config.DB
 }
 
 // GetUser : retrieve user by id from the database
@@ -30,7 +31,7 @@ func (ud UserDaoImpl) GetUser(id int) (usermodel.User, error) {
 	query += "WHERE u.id = $1"
 
 	//rows, err := config.Database.Query(query, id)
-	stmt, err := config.Database.Prepare(query)
+	stmt, err := ud.db.Prepare(query)
 	if err != nil {
 		log.Println(err)
 		return usermodel.User{}, err
@@ -86,7 +87,7 @@ func (ud UserDaoImpl) GetUserByUsername(username string) (usermodel.User, error)
 
 	//err := row.Scan(&user.ID, &user.Username, &user.Password, &user.LastName, &user.LastName)
 
-	stmt, err := config.Database.Prepare(query)
+	stmt, err := ud.db.Prepare(query)
 	if err != nil {
 		log.Println(err)
 		return user, err
@@ -116,7 +117,7 @@ func (ud UserDaoImpl) CheckUsernameUnique(username string) (bool, error) {
 
 	//err := row.Scan(&user.ID)
 
-	stmt, err := config.Database.Prepare(query)
+	stmt, err := ud.db.Prepare(query)
 	if err != nil {
 		log.Println(err)
 		return false, err
@@ -152,7 +153,7 @@ func (ud UserDaoImpl) Create(u usermodel.User) (usermodel.User, error) {
 		log.Println("Cannot hash password")
 	}
 
-	tx, err := config.Database.Begin()
+	tx, err := ud.db.Begin()
 	if err != nil {
 		log.Println(err)
 		return result, err

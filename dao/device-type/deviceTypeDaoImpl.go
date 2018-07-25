@@ -10,6 +10,7 @@ import (
 
 // DeviceTypeDaoImpl : implementation for DB operations on device type
 type DeviceTypeDaoImpl struct {
+	db *config.DB
 }
 
 // FindDeviceTypes : retrieve device types from the database
@@ -18,7 +19,7 @@ func (dtd DeviceTypeDaoImpl) FindDeviceTypes() ([]devicetypemodel.DeviceType, er
 	sql := "SELECT dt.device_type_id, dt.name, dt.description FROM device_type dt"
 	//rows, err := config.Database.Query(sql)
 
-	stmt, err := config.Database.Prepare(sql)
+	stmt, err := dtd.db.Prepare(sql)
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -64,7 +65,7 @@ func (dtd DeviceTypeDaoImpl) GetDeviceType(id int) (devicetypemodel.DeviceType, 
 
 	//err := row.Scan(&deviceType.ID, &deviceType.Name, &deviceType.Description)
 
-	stmt, err := config.Database.Prepare(sql)
+	stmt, err := dtd.db.Prepare(sql)
 	if err != nil {
 		log.Println(err)
 		return deviceType, err
